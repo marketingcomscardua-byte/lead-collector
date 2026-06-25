@@ -102,7 +102,7 @@ function isGenericFolder(rawName) {
   // Prefixo 00 = conteúdo de engajamento
   if (/^\s*00\s*[-–.]/u.test(rawName)) return true;
   // Sub-pastas de produto: "01. Fotos", "02. Vídeos", etc.
-  if (/^0?\d[.\-]\s*(fotos?|v[íi]deos?|depoimentos?)/iu.test(rawName)) return true;
+  if (/^0?\d[.-]\s*(fotos?|v[íi]deos?|depoimentos?)/iu.test(rawName)) return true;
   return false;
 }
 
@@ -224,7 +224,7 @@ function scanScardua(folderPath, line, company, sourceRoot, depth, products, see
     if (depth >= 2) {
       // Sub-pastas de produto (Fotos, Videos, Depoimentos)
       if (/^(fotos?|v[íi]deos?|videos?|imagens?|depoimentos?)$/iu.test(rawName)) continue;
-      if (/^0?[0-9][.\-]\s*(fotos?|v[íi]deos?|depoimentos?)/iu.test(rawName)) continue;
+      if (/^0?[0-9][.-]\s*(fotos?|v[íi]deos?|depoimentos?)/iu.test(rawName)) continue;
 
       const detectedLine = detectLineFromPath(fullPath, line);
       const key = normalizeKey(stripped) + '::' + normalizeKey(company);
@@ -335,7 +335,7 @@ function scanPorto(folderPath, company, sourceRoot, products, seenKeys) {
 
       // Ignorar sub-pastas de produto (Fotos/Videos/Depoimentos)
       if (/^(fotos?|v[íi]deos?|videos?|imagens?|depoimentos?)$/iu.test(subRaw)) continue;
-      if (/^0?[0-9][.\-]\s*(fotos?|v[íi]deos?|depoimentos?)/iu.test(subRaw)) continue;
+      if (/^0?[0-9][.-]\s*(fotos?|v[íi]deos?|depoimentos?)/iu.test(subRaw)) continue;
 
       const key = normalizeKey(stripped) + '::' + normalizeKey(company);
       if (seenKeys.has(key)) continue;
