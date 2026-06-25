@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Edit2, Download, Calendar, 
   Database, TrendingUp, AlertCircle, X, Check, Shield, Users
 } from 'lucide-react';
-import { leadCollectorStorage } from '../storage/leadCollectorStorage';
+import { dataProvider } from '../services/dataProvider';
 import { Event } from '../types/event';
 import { Seller } from '../types/seller';
 import { Company } from '../types/company';
@@ -124,66 +124,69 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
   const [evProductSearch, setEvProductSearch] = useState('');
 
   // Load lists
-  const loadAll = useCallback(() => {
-    const rawEvents = leadCollectorStorage.getEvents();
-    const rawCompanies = leadCollectorStorage.getCompanies();
-    const rawSellers = leadCollectorStorage.getSellers();
-    let rawProducts = leadCollectorStorage.getProducts();
-    const rawLeads = leadCollectorStorage.getLeads();
+  const loadAll = useCallback(async () => {
+    try {
+      const rawEvents = await dataProvider.getEvents();
+      const rawCompanies = await dataProvider.getCompanies();
+      const rawSellers = await dataProvider.getSellers();
+      let rawProducts = await dataProvider.getProducts();
+      const rawLeads = await dataProvider.getLeads();
 
-    // Normalization of products brands, lines, and categories using official rules
-    let updatedAny = false;
-    const normalizedProducts = rawProducts.map(p => {
-      let changed = false;
-      const classification = classifyProduct(p.name, p.companyName, (p as any).sourcePath);
+      // Normalization of products brands, lines, and categories using official rules
+      let updatedAny = false;
+      const normalizedProducts = await Promise.all(rawProducts.map(async p => {
+        let changed = false;
+        const classification = classifyProduct(p.name, p.companyName, (p as any).sourcePath);
 
-      let brand = p.brand;
-      let companyName = p.companyName;
-      let category = p.category;
+        let brand = p.brand;
+        let companyName = p.companyName;
+        let category = p.category;
 
-      if (brand !== classification.brand) {
-        brand = classification.brand;
-        changed = true;
-      }
-      if (companyName !== classification.companyName) {
-        companyName = classification.companyName;
-        changed = true;
-      }
-      if (!category || category === 'Outros' || category === '—') {
-        if (classification.category !== 'Outros') {
-          category = classification.category;
+        if (brand !== classification.brand) {
+          brand = classification.brand;
           changed = true;
         }
-      }
+        if (companyName !== classification.companyName) {
+          companyName = classification.companyName;
+          changed = true;
+        }
+        if (!category || category === 'Outros' || category === '—') {
+          if (classification.category !== 'Outros') {
+            category = classification.category;
+            changed = true;
+          }
+        }
 
-      if (changed) {
-        updatedAny = true;
-        return {
-          ...p,
-          brand,
-          companyName,
-          category
-        };
-      }
-      return p;
-    });
+        if (changed) {
+          updatedAny = true;
+          const updatedProd = {
+            ...p,
+            brand,
+            companyName,
+            category
+          };
+          await dataProvider.updateProduct(p.id, updatedProd);
+          return updatedProd;
+        }
+        return p;
+      }));
 
-    if (updatedAny) {
-      leadCollectorStorage.saveProducts(normalizedProducts);
-      rawProducts = normalizedProducts;
+      const finalProducts = updatedAny ? normalizedProducts : rawProducts;
+
+      const filteredEvents = filterEventsByAccess(seller, rawEvents, rawSellers, finalProducts);
+      const filteredCompanies = filterCompaniesByAccess(seller, rawCompanies);
+      const filteredSellers = filterUsersByAccess(seller, rawSellers);
+      const filteredProducts = filterProductsByAccess(seller, finalProducts);
+      const filteredLeads = filterLeadsByAccess(seller, rawLeads);
+
+      setEvents(filteredEvents);
+      setCompanies(filteredCompanies);
+      setSellers(filteredSellers);
+      setProducts(filteredProducts);
+      setLeads(filteredLeads);
+    } catch (err) {
+      console.error("Error loading admin data:", err);
     }
-
-    const filteredEvents = filterEventsByAccess(seller, rawEvents, rawSellers, rawProducts);
-    const filteredCompanies = filterCompaniesByAccess(seller, rawCompanies);
-    const filteredSellers = filterUsersByAccess(seller, rawSellers);
-    const filteredProducts = filterProductsByAccess(seller, rawProducts);
-    const filteredLeads = filterLeadsByAccess(seller, rawLeads);
-
-    setEvents(filteredEvents);
-    setCompanies(filteredCompanies);
-    setSellers(filteredSellers);
-    setProducts(filteredProducts);
-    setLeads(filteredLeads);
   }, [seller]);
 
   useEffect(() => {
@@ -386,7 +389,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     }
   };
 
-  const handleSaveEvent = (e: React.FormEvent) => {
+  const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError('');
 
@@ -411,19 +414,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     };
 
     if (selectedItem) {
-      leadCollectorStorage.updateEvent(selectedItem.id, payload);
+      await dataProvider.updateEvent(selectedItem.id, payload);
       showBanner('Evento atualizado com sucesso!');
     } else {
-      leadCollectorStorage.addEvent(payload);
+      await dataProvider.addEvent(payload);
       showBanner('Evento adicionado com sucesso!');
     }
     setActiveModal(null);
     loadAll();
   };
 
-  const handleDeleteEvent = (id: string) => {
+  const handleDeleteEvent = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este evento?')) {
-      leadCollectorStorage.deleteEvent(id);
+      await dataProvider.deleteEvent(id);
       showBanner('Evento excluído.');
       loadAll();
     }
@@ -452,7 +455,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     setActiveModal('company');
   };
 
-  const handleSaveCompany = (e: React.FormEvent) => {
+  const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError('');
 
@@ -470,39 +473,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     };
 
     if (selectedItem) {
-      leadCollectorStorage.updateCompany(selectedItem.id, payload);
+      await dataProvider.updateCompany(selectedItem.id, payload);
       showBanner('Empresa atualizada!');
       // Update companyName on associated products and sellers automatically
-      const sellersList = leadCollectorStorage.getSellers();
-      sellersList.forEach(s => {
+      const sellersList = await dataProvider.getSellers();
+      for (const s of sellersList) {
         if (s.companyId === selectedItem.id) {
-          leadCollectorStorage.updateSeller(s.id, { companyName: coName });
+          await dataProvider.updateSeller(s.id, { companyName: coName });
         }
-      });
-      const productsList = leadCollectorStorage.getProducts();
-      productsList.forEach(p => {
+      }
+      const productsList = await dataProvider.getProducts();
+      for (const p of productsList) {
         if (p.companyId === selectedItem.id) {
-          leadCollectorStorage.updateProduct(p.id, { companyName: coName });
+          await dataProvider.updateProduct(p.id, { companyName: coName });
         }
-      });
+      }
     } else {
-      leadCollectorStorage.addCompany(payload);
+      await dataProvider.addCompany(payload);
       showBanner('Empresa adicionada!');
     }
     setActiveModal(null);
     loadAll();
   };
 
-  const handleDeleteCompany = (id: string) => {
+  const handleDeleteCompany = async (id: string) => {
     if (window.confirm('Excluir empresa? Vendedores associados ficarão como "Sem Empresa".')) {
-      leadCollectorStorage.deleteCompany(id);
+      await dataProvider.deleteCompany(id);
       // Clean association
-      const sellersList = leadCollectorStorage.getSellers();
-      sellersList.forEach(s => {
+      const sellersList = await dataProvider.getSellers();
+      for (const s of sellersList) {
         if (s.companyId === id) {
-          leadCollectorStorage.updateSeller(s.id, { companyId: '', companyName: 'Sem Empresa' });
+          await dataProvider.updateSeller(s.id, { companyId: '', companyName: 'Sem Empresa' });
         }
-      });
+      }
       showBanner('Empresa excluída.');
       loadAll();
     }
@@ -537,7 +540,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     setActiveModal('seller');
   };
 
-  const handleSaveSeller = (e: React.FormEvent) => {
+  const handleSaveSeller = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError('');
 
@@ -547,7 +550,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
         setModalError('A nova senha não pode ser vazia.');
         return;
       }
-      leadCollectorStorage.updateSeller(selectedItem.id, { password: sePassword });
+      await dataProvider.updateSeller(selectedItem.id, { password: sePassword });
       showBanner('Senha do administrador principal atualizada com sucesso!');
       setActiveModal(null);
       loadAll();
@@ -575,7 +578,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     };
 
     if (selectedItem) {
-      leadCollectorStorage.updateSeller(selectedItem.id, payload);
+      await dataProvider.updateSeller(selectedItem.id, payload);
       showBanner('Usuário atualizado!');
     } else {
       // Check duplicate usernames
@@ -584,14 +587,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
         setModalError('Este nome de usuário já está cadastrado.');
         return;
       }
-      leadCollectorStorage.addSeller(payload);
+      await dataProvider.addSeller(payload);
       showBanner('Usuário cadastrado!');
     }
     setActiveModal(null);
     loadAll();
   };
 
-  const handleDeleteSeller = (id: string) => {
+  const handleDeleteSeller = async (id: string) => {
     const target = sellers.find(s => s.id === id);
     if (target && isRootAdmin(target)) {
       setModalError('O administrador principal do sistema não pode ser excluído.');
@@ -602,7 +605,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     }
     if (window.confirm('Deseja excluir este vendedor?')) {
       try {
-        leadCollectorStorage.deleteSeller(id);
+        await dataProvider.deleteSeller(id);
         showBanner('Vendedor excluído.');
         loadAll();
       } catch (err: any) {
@@ -636,7 +639,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     setActiveModal('product');
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError('');
 
@@ -666,28 +669,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     };
 
     if (selectedItem) {
-      leadCollectorStorage.updateProduct(selectedItem.id, payload);
+      await dataProvider.updateProduct(selectedItem.id, payload);
       showBanner('Produto atualizado!');
     } else {
-      leadCollectorStorage.addProduct(payload);
+      await dataProvider.addProduct(payload);
       showBanner('Produto cadastrado!');
     }
     setActiveModal(null);
     loadAll();
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (window.confirm('Deseja excluir este produto?')) {
-      leadCollectorStorage.deleteProduct(id);
+      await dataProvider.deleteProduct(id);
       showBanner('Produto excluído.');
       loadAll();
     }
   };
 
   // --- LEADS ---
-  const handleDeleteLead = (id: string) => {
+  const handleDeleteLead = async (id: string) => {
     if (window.confirm('Tem certeza que deseja apagar este lead do banco de dados?')) {
-      leadCollectorStorage.deleteLead(id);
+      await dataProvider.deleteLead(id);
       showBanner('Lead apagado.');
       loadAll();
     }

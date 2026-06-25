@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { FormInput } from '../components/FormInput';
-import { leadCollectorStorage } from '../storage/leadCollectorStorage';
+import { dataProvider } from '../services/dataProvider';
 import { Seller } from '../types/seller';
 import { InstallPwaButton } from '../components/common/InstallPwaButton';
 
@@ -14,7 +14,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -27,23 +27,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    const sellers = leadCollectorStorage.getSellers();
-
-    const seller = sellers.find(
-      (s) =>
-        (s.username === usernameOrEmail.trim() || s.email === usernameOrEmail.trim()) &&
-        s.password === password
-    );
-
-    if (seller) {
-      if (seller.status === 'Inativo') {
-        setError('Este usuário está inativo.');
-        return;
-      }
-      leadCollectorStorage.setCurrentSellerId(seller.id);
+    try {
+      const seller = await dataProvider.login(usernameOrEmail, password);
       onLoginSuccess(seller);
-    } else {
-      setError('Usuário/E-mail ou senha incorretos.');
+    } catch (err: any) {
+      setError(err.message || 'Usuário/E-mail ou senha incorretos.');
     }
   };
 

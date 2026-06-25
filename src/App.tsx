@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { leadCollectorStorage } from './storage/leadCollectorStorage';
 import { initializeAppData } from './storage/initializeAppData';
+import { dataProvider } from './services/dataProvider';
 import { Seller } from './types/seller';
 import { isAdminRole } from './utils/accessControl';
 import { LoginPage } from './pages/LoginPage';
@@ -24,35 +25,61 @@ function App() {
     initializeAppData();
 
     // Check if seller session exists
-    const sessionSeller = leadCollectorStorage.getCurrentSeller();
-    if (sessionSeller) {
-      setCurrentSeller(sessionSeller);
-      setLeadsCount(leadCollectorStorage.getLeadsCountBySeller(sessionSeller.id));
-    }
+    const checkSession = async () => {
+      try {
+        const sessionSeller = await dataProvider.getCurrentSeller();
+        if (sessionSeller) {
+          setCurrentSeller(sessionSeller);
+          const count = await dataProvider.getLeadsCountBySeller(sessionSeller.id);
+          setLeadsCount(count);
+        }
+      } catch (err) {
+        console.error("Error loading session:", err);
+      }
+    };
+    checkSession();
   }, []);
 
-  const handleOpenProfile = () => {
+  const handleOpenProfile = async () => {
     if (currentSeller) {
-      setLeadsCount(leadCollectorStorage.getLeadsCountBySeller(currentSeller.id));
+      try {
+        const count = await dataProvider.getLeadsCountBySeller(currentSeller.id);
+        setLeadsCount(count);
+      } catch (err) {
+        console.error("Error updating leads count:", err);
+      }
     }
     setIsProfileOpen(true);
   };
 
-  const handleUpdateSeller = (fields: Partial<Seller>) => {
+  const handleUpdateSeller = async (fields: Partial<Seller>) => {
     if (!currentSeller) return;
-    const updated = leadCollectorStorage.updateSeller(currentSeller.id, fields);
-    setCurrentSeller(updated);
+    try {
+      const updated = await dataProvider.updateSeller(currentSeller.id, fields);
+      setCurrentSeller(updated);
+    } catch (err) {
+      console.error("Error updating seller:", err);
+    }
   };
 
-  const handleLogout = () => {
-    leadCollectorStorage.setCurrentSellerId(null);
-    setCurrentSeller(null);
-    setIsProfileOpen(false);
+  const handleLogout = async () => {
+    try {
+      await dataProvider.logout();
+      setCurrentSeller(null);
+      setIsProfileOpen(false);
+    } catch (err) {
+      console.error("Error logging out:", err);
+    }
   };
 
-  const handleLoginSuccess = (seller: Seller) => {
+  const handleLoginSuccess = async (seller: Seller) => {
     setCurrentSeller(seller);
-    setLeadsCount(leadCollectorStorage.getLeadsCountBySeller(seller.id));
+    try {
+      const count = await dataProvider.getLeadsCountBySeller(seller.id);
+      setLeadsCount(count);
+    } catch (err) {
+      console.error("Error fetching count:", err);
+    }
     setAdminTab('dashboard'); // Reset tab on admin login
   };
 

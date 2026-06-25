@@ -7,7 +7,7 @@ import { FormInput } from '../components/FormInput';
 import { SelectField } from '../components/SelectField';
 import { ProductSelector } from '../components/ProductSelector';
 import { SupportFooter } from '../components/SupportFooter';
-import { leadCollectorStorage } from '../storage/leadCollectorStorage';
+import { dataProvider } from '../services/dataProvider';
 import { maskPhone } from '../utils/phoneMask';
 import { isDuplicateLead } from '../utils/validators';
 import { 
@@ -68,16 +68,25 @@ export const NewLeadPage: React.FC<NewLeadPageProps> = ({ seller }) => {
 
   // Initial load
   useEffect(() => {
-    setEvents(leadCollectorStorage.getEvents());
-    setProducts(leadCollectorStorage.getProducts());
+    const loadInitialData = async () => {
+      try {
+        const evs = await dataProvider.getEvents();
+        const prods = await dataProvider.getProducts();
+        setEvents(evs);
+        setProducts(prods);
 
-    // Preselect active event if available and seller is linked
-    const activeEvent = leadCollectorStorage.getEvents().find(
-      e => e.status === 'active' && e.sellerIds && e.sellerIds.includes(seller.id)
-    );
-    if (activeEvent) {
-      setEventId(activeEvent.id);
-    }
+        // Preselect active event if available and seller is linked
+        const activeEvent = evs.find(
+          e => e.status === 'active' && e.sellerIds && e.sellerIds.includes(seller.id)
+        );
+        if (activeEvent) {
+          setEventId(activeEvent.id);
+        }
+      } catch (err) {
+        console.error("Error loading lead page data:", err);
+      }
+    };
+    loadInitialData();
 
     // Load states
     async function loadStates() {
@@ -187,7 +196,27 @@ export const NewLeadPage: React.FC<NewLeadPageProps> = ({ seller }) => {
     ).slice(0, 100);
   }, [cities, cityQuery]);
 
-  const validate = (): boolean => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMessage('');
+    setErrors({});
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    let isDuplicate = false;
+
+    if (eventId && phone.trim() && cleanPhone.length >= 10) {
+      try {
+        const allLeads = await dataProvider.getLeads();
+        isDuplicate = isDuplicateLead(
+          allLeads.map((l) => ({ ...l, name: l.fullName } as any)),
+          phone,
+          eventId
+        );
+      } catch (err) {
+        console.error("Error checking duplicate:", err);
+      }
+    }
+
     const newErrors: Record<string, string> = {};
 
     if (!eventId) {
@@ -198,11 +227,10 @@ export const NewLeadPage: React.FC<NewLeadPageProps> = ({ seller }) => {
     }
     if (!phone.trim()) {
       newErrors.phone = 'Telefone é obrigatório.';
-    } else {
-      const cleanPhone = phone.replace(/\D/g, '');
-      if (cleanPhone.length < 10) {
-        newErrors.phone = 'Insira um telefone válido com DDD.';
-      }
+    } else if (cleanPhone.length < 10) {
+      newErrors.phone = 'Insira um telefone válido com DDD.';
+    } else if (isDuplicate) {
+      newErrors.phone = 'Este telefone já foi cadastrado para este evento.';
     }
     if (!stateUf) {
       newErrors.state = 'Selecione um estado.';
@@ -214,67 +242,52 @@ export const NewLeadPage: React.FC<NewLeadPageProps> = ({ seller }) => {
       newErrors.products = 'Selecione pelo menos um produto.';
     }
 
-    // Check duplicate phone in the same event
-    if (eventId && phone) {
-      const allLeads = leadCollectorStorage.getLeads();
-      const duplicate = isDuplicateLead(
-        allLeads.map((l) => ({ ...l, name: l.fullName } as any)),
-        phone,
-        eventId
-      );
-      if (duplicate) {
-        newErrors.phone = 'Este telefone já foi cadastrado para este evento.';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSuccessMessage('');
-
-    if (!validate()) {
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
     // Find event details
     const selectedEvent = events.find(e => e.id === eventId);
     
-    // Save lead
-    leadCollectorStorage.addLead({
-      eventId,
-      eventName: selectedEvent ? selectedEvent.name : '',
-      sellerId: seller.id,
-      sellerName: seller.name,
-      companyId: seller.companyId || '',
-      companyName: seller.companyName || 'Sem Empresa',
-      fullName,
-      phone,
-      state,
-      stateUf,
-      city,
-      cityId,
-      products: selectedProducts
-    });
+    try {
+      // Save lead
+      await dataProvider.addLead({
+        eventId,
+        eventName: selectedEvent ? selectedEvent.name : '',
+        sellerId: seller.id,
+        sellerName: seller.name,
+        companyId: seller.companyId || '',
+        companyName: seller.companyName || 'Sem Empresa',
+        fullName,
+        phone,
+        state,
+        stateUf,
+        city,
+        cityId,
+        products: selectedProducts
+      });
 
-    // Show success message
-    setSuccessMessage('Lead registrado com sucesso!');
-    
-    // Reset inputs but KEEP event and state for convenience in events
-    setFullName('');
-    setPhone('');
-    setCity('');
-    setCityQuery('');
-    setCityId(null);
-    setSelectedProducts([]);
-    setErrors({});
+      // Show success message
+      setSuccessMessage('Lead registrado com sucesso!');
+      
+      // Reset inputs but KEEP event and state for convenience in events
+      setFullName('');
+      setPhone('');
+      setCity('');
+      setCityQuery('');
+      setCityId(null);
+      setSelectedProducts([]);
+      setErrors({});
 
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      setSuccessMessage('');
-    }, 3000);
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (err) {
+      console.error("Error saving lead:", err);
+      setErrors({ global: 'Não foi possível salvar o lead. Tente novamente.' });
+    }
   };
 
   return (
