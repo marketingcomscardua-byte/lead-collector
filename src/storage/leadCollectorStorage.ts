@@ -70,7 +70,7 @@ export const leadCollectorStorage = {
     const migrated: Seller = {
       ...existing,
       id: 'root-admin',                    // Normalize id
-      name: 'Administrador',               // Lock name
+      name: ROOT_ADMIN_SEED.name,          // Lock name
       username: 'admin',                   // Lock username (login by email)
       email: 'admin@scardua.com.br',       // Lock email
       phone: existing.phone || '27999990000',
@@ -78,7 +78,7 @@ export const leadCollectorStorage = {
       companyId: null,                     // No company scope
       companyName: 'Todas',                // All companies
       isProtected: true,                   // Protection flag
-      status: 'Ativo',                     // Always active
+      status: ROOT_ADMIN_SEED.status,      // Always active
       password: existing.password || ROOT_ADMIN_SEED.password, // Keep current password
     };
 

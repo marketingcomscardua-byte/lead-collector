@@ -11,7 +11,8 @@ export const SEED_COMPANIES: Company[] = [
   { id: 'c5', name: 'C. SCARDUA LTDA - M.G', status: 'Ativo' },
   { id: 'c6', name: 'C. SCARDUA LTDA - LINHARES', status: 'Ativo' },
   { id: 'c7', name: 'C. SCARDUA LTDA - ITARANA', status: 'Ativo' },
-  { id: 'c8', name: 'C. SCARDUA LTDA - CARAPINA', status: 'Ativo' }
+  { id: 'c8', name: 'C. SCARDUA LTDA - CARAPINA', status: 'Ativo' },
+  { id: 'c9', name: 'Comercial Scardua', status: 'Ativo' }
 ];
 
 export const SEED_PRODUCTS: Product[] = [
@@ -23,16 +24,16 @@ export const SEED_PRODUCTS: Product[] = [
 
 export const ROOT_ADMIN_SEED: Seller = {
   id: 'root-admin',
-  name: 'Administrador',
+  name: 'Administrador Principal',
   username: 'admin',
   email: 'admin@scardua.com.br',
-  password: '1234',
+  password: 'Psw@1830',
   phone: '27999990000',
   role: 'root_admin',
   companyId: null,
   companyName: 'Todas',
   isProtected: true,
-  status: 'Ativo'
+  status: 'active'
 };
 
 export const SEED_SELLERS: Seller[] = [
