@@ -17,6 +17,8 @@ import {
 } from '../services/ibgeLocations';
 import { BRAZIL_STATES_FALLBACK } from '../data/brazilLocationsFallback';
 import { bulkCreatePortalLeadVendors } from '../utils/bulkCreateVendors';
+import { formatBrazilianPhone, maskPhone, unmaskPhone } from '../utils/phoneMask';
+import { classifyProduct, PRODUCT_CATEGORIES } from '../utils/productClassification';
 
 interface AdminPanelProps {
   currentTab: string;
@@ -33,6 +35,22 @@ import {
   filterCompaniesByAccess, 
   filterEventsByAccess 
 } from '../utils/accessControl';
+
+function formatCompanyShortName(companyName: string) {
+  if (!companyName) return 'Sem Empresa';
+  const map: Record<string, string> = {
+    "TRAÇÃOFORT MAQUINAS E EQUIPAMENTOS LTDA": "Traçãofort",
+    "C. SCARDUA LTDA - PA": "Scardua PA",
+    "C. SCARDUA LTDA - M.G": "Scardua MG",
+    "C. SCARDUA LTDA - LINHARES": "Scardua Linhares",
+    "C. SCARDUA LTDA - ITARANA": "Scardua Itarana",
+    "C. SCARDUA LTDA - CARAPINA": "Scardua Carapina",
+    "PORTO LIVRE": "Porto Livre",
+    "MARINE CENTER": "Marine Center",
+    "Comercial Scardua": "Comercial Scardua"
+  };
+  return map[companyName] || companyName;
+}
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) => {
   // Collections lists
@@ -113,88 +131,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
     let rawProducts = leadCollectorStorage.getProducts();
     const rawLeads = leadCollectorStorage.getLeads();
 
-    // Normalization of products brands, lines, and categories
+    // Normalization of products brands, lines, and categories using official rules
     let updatedAny = false;
     const normalizedProducts = rawProducts.map(p => {
       let changed = false;
-      let brand = p.brand || '';
-      let category = p.category || '';
-      let line = p.line || '';
+      const classification = classifyProduct(p.name, p.companyName, (p as any).sourcePath);
 
-      // Normalize brand
-      const bNorm = brand.trim().toLowerCase();
-      let newBrand = 'Outras';
-      if (bNorm === 'sunward' || bNorm === 'sundward' || bNorm === 'sumward' || bNorm === 'sw') {
-        newBrand = 'Sunward';
-      } else if (bNorm === 'agritech') {
-        newBrand = 'Agritech';
-      } else if (bNorm === 'moldemaq') {
-        newBrand = 'Moldemaq';
-      } else if (bNorm === 'yto') {
-        newBrand = 'YTO';
-      } else if (bNorm === 'barbieri') {
-        newBrand = 'Barbieri';
-      } else if (bNorm === 'mercury') {
-        newBrand = 'Mercury';
-      } else if (bNorm === 'fibrafort') {
-        newBrand = 'Fibrafort';
-      } else if (bNorm === 'ventura') {
-        newBrand = 'Ventura';
-      } else if (bNorm === 'comercial scardua' || bNorm === 'c. scardua') {
-        newBrand = 'Comercial Scardua';
-      } else if (bNorm === 'porto livre') {
-        newBrand = 'Porto Livre';
-      } else if (bNorm === 'outras' || bNorm === 'outra') {
-        newBrand = 'Outras';
-      }
+      let brand = p.brand;
+      let companyName = p.companyName;
+      let category = p.category;
 
-      // Regra especial Sunward for SWE / SWL
-      const nameNorm = p.name.trim().toUpperCase();
-      if (nameNorm.startsWith('SWE') || nameNorm.startsWith('SWL')) {
-        newBrand = 'Sunward';
-      }
-
-      if (newBrand !== p.brand) {
-        brand = newBrand;
+      if (brand !== classification.brand) {
+        brand = classification.brand;
         changed = true;
       }
-
-      // Normalize Category
-      const catNorm = category.trim().toLowerCase();
-      let newCat = 'Outros';
-      if (catNorm === 'trator') newCat = 'Trator';
-      else if (catNorm === 'microtrator' || catNorm === 'micro trator') newCat = 'Microtrator';
-      else if (catNorm === 'transportador agrícola' || catNorm === 'transportador agricola' || catNorm === 'transportador') newCat = 'Transportador Agrícola';
-      else if (catNorm === 'escavadeira') newCat = 'Escavadeira';
-      else if (catNorm === 'mini escavadeira' || catNorm === 'miniescavadeira') newCat = 'Mini Escavadeira';
-      else if (catNorm === 'pá carregadeira' || catNorm === 'pa carregadeira' || catNorm === 'pa-carregadeira') newCat = 'Pá Carregadeira';
-      else if (catNorm === 'rolo compactador' || catNorm === 'rolo') newCat = 'Rolo Compactador';
-      else if (catNorm === 'retroescavadeira' || catNorm === 'retro') newCat = 'Retroescavadeira';
-      else if (catNorm === 'barco') newCat = 'Barco';
-      else if (catNorm === 'motor') newCat = 'Motor';
-      else if (catNorm === 'jet ski' || catNorm === 'jetski') newCat = 'Jet Ski';
-      else if (catNorm === 'quadriciclo') newCat = 'Quadriciclo';
-      else if (catNorm === 'peças' || catNorm === 'pecas') newCat = 'Peças';
-      else if (catNorm === 'serviço' || catNorm === 'servico') newCat = 'Serviço';
-      else if (catNorm === 'outros' || catNorm === 'outro') newCat = 'Outros';
-
-      if (newCat !== p.category) {
-        category = newCat;
+      if (companyName !== classification.companyName) {
+        companyName = classification.companyName;
         changed = true;
       }
-
-      // Normalize Line
-      const lineNorm = line.trim().toLowerCase();
-      let newLine = 'Outros';
-      if (lineNorm === 'linha agricola' || lineNorm === 'linha agrícola') newLine = 'Linha Agrícola';
-      else if (lineNorm === 'linha amarela') newLine = 'Linha Amarela';
-      else if (lineNorm === 'linha náutica' || lineNorm === 'linha nautica') newLine = 'Linha Náutica';
-      else if (lineNorm === 'porto livre') newLine = 'Porto Livre';
-      else if (lineNorm === 'outros' || lineNorm === 'outro') newLine = 'Outros';
-
-      if (newLine !== p.line) {
-        line = newLine;
-        changed = true;
+      if (!category || category === 'Outros' || category === '—') {
+        if (classification.category !== 'Outros') {
+          category = classification.category;
+          changed = true;
+        }
       }
 
       if (changed) {
@@ -202,8 +161,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
         return {
           ...p,
           brand,
-          category,
-          line
+          companyName,
+          category
         };
       }
       return p;
@@ -902,7 +861,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
           </div>
 
           <div className="table-container">
-            <table className="admin-table">
+            <table className="admin-table events-table">
+              <colgroup>
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '5%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Nome</th>
@@ -924,10 +892,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                 ) : (
                   events.map((evt) => (
                     <tr key={evt.id}>
-                      <td style={{ fontWeight: 600 }}>{evt.name}</td>
-                      <td>{new Date(evt.startDate).toLocaleDateString('pt-BR')} até {new Date(evt.endDate).toLocaleDateString('pt-BR')}</td>
-                      <td>{evt.location}, {evt.city} - {evt.state}</td>
-                      <td style={{ fontSize: '0.85rem' }}>
+                      <td className="name-cell truncate-cell" title={evt.name} style={{ fontWeight: 600 }}>{evt.name}</td>
+                      <td className="nowrap">{new Date(evt.startDate).toLocaleDateString('pt-BR')} até {new Date(evt.endDate).toLocaleDateString('pt-BR')}</td>
+                      <td className="truncate-cell" title={`${evt.location}, ${evt.city} - ${evt.state}`}>{evt.location}, {evt.city} - {evt.state}</td>
+                      <td className="truncate-cell" style={{ fontSize: '0.85rem' }} title={
+                        evt.sellerIds && evt.sellerIds.length > 0 ? (
+                          sellers.filter(s => evt.sellerIds.includes(s.id)).map(s => s.name).join(', ')
+                        ) : 'Nenhum'
+                      }>
                         {evt.sellerIds && evt.sellerIds.length > 0 ? (
                           sellers
                             .filter(s => evt.sellerIds.includes(s.id))
@@ -937,7 +909,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                           <span style={{ color: 'var(--danger)' }}>Nenhum vinculado</span>
                         )}
                       </td>
-                      <td style={{ fontSize: '0.85rem' }}>
+                      <td className="truncate-cell" style={{ fontSize: '0.85rem' }} title={
+                        evt.productIds && evt.productIds.length > 0 ? (
+                          products.filter(p => evt.productIds.includes(p.id)).map(p => p.name).join(', ')
+                        ) : 'Nenhum'
+                      }>
                         {evt.productIds && evt.productIds.length > 0 ? (
                           products
                             .filter(p => evt.productIds.includes(p.id))
@@ -947,29 +923,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                           <span style={{ color: 'var(--danger)' }}>Nenhum em exposição</span>
                         )}
                       </td>
-                      <td>
-                        <span className={`admin-badge ${
+                      <td className="nowrap">
+                        <span className={`admin-badge status-badge ${
                           evt.status === 'active' ? 'admin-badge-success' : 
                           evt.status === 'future' ? 'admin-badge-warning' : 'admin-badge-danger'
-                        }`}>
-                          {evt.status === 'active' ? 'Ativo' : evt.status === 'future' ? 'Futuro' : 'Finalizado'}
+                        }`} title={evt.status}>
+                          {evt.status === 'active' ? 'ATIVO' : evt.status === 'future' ? 'FUTURO' : 'CONCLUÍDO'}
                         </span>
                       </td>
-                      <td>
-                        <div className="action-buttons-group">
+                      <td className="actions-cell">
+                        <div className="actions-cell-inner">
                           <button 
                             type="button" 
-                            className="btn btn-outline btn-sm" 
+                            className="btn btn-outline btn-sm action-button" 
                             onClick={() => handleOpenEditEvent(evt)}
-                            style={{ width: 'auto' }}
                           >
                             <Edit2 size={14} />
                           </button>
                           <button 
                             type="button" 
-                            className="btn btn-danger-light btn-sm" 
+                            className="btn btn-danger-light btn-sm action-button" 
                             onClick={() => handleDeleteEvent(evt.id)}
-                            style={{ width: 'auto' }}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1003,7 +977,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
           </div>
 
           <div className="table-container">
-            <table className="admin-table">
+            <table className="admin-table companies-table">
+              <colgroup>
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '25%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '5%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -1025,31 +1008,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                 ) : (
                   companies.map((co) => (
                     <tr key={co.id}>
-                      <td>{co.id}</td>
-                      <td style={{ fontWeight: 600 }}>{co.name}</td>
-                      <td>{co.email || '-'}</td>
-                      <td>{co.phone || '-'}</td>
-                      <td>{co.cnpj || '-'}</td>
-                      <td>
-                        <span className={`admin-badge ${co.status === 'Ativo' ? 'admin-badge-success' : 'admin-badge-danger'}`}>
-                          {co.status}
+                      <td className="truncate-cell" title={co.id}>{co.id}</td>
+                      <td className="name-cell truncate-cell" title={co.name} style={{ fontWeight: 600 }}>{co.name}</td>
+                      <td className="email-cell truncate-cell" title={co.email}>{co.email || '-'}</td>
+                      <td className="phone-cell nowrap">{co.phone ? formatBrazilianPhone(co.phone) : '-'}</td>
+                      <td className="nowrap">{co.cnpj || '-'}</td>
+                      <td className="nowrap">
+                        <span className={`admin-badge status-badge ${co.status === 'Ativo' ? 'admin-badge-success' : 'admin-badge-danger'}`} title={co.status}>
+                          {co.status === 'Ativo' ? 'ATIVO' : 'INATIVO'}
                         </span>
                       </td>
-                      <td>
-                        <div className="action-buttons-group">
+                      <td className="actions-cell">
+                        <div className="actions-cell-inner">
                           <button 
                             type="button" 
-                            className="btn btn-outline btn-sm" 
+                            className="btn btn-outline btn-sm action-button" 
                             onClick={() => handleOpenEditCompany(co)}
-                            style={{ width: 'auto' }}
                           >
                             <Edit2 size={14} />
                           </button>
                           <button 
                             type="button" 
-                            className="btn btn-danger-light btn-sm" 
+                            className="btn btn-danger-light btn-sm action-button" 
                             onClick={() => handleDeleteCompany(co.id)}
-                            style={{ width: 'auto' }}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1072,28 +1053,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
           <div className="admin-section-header">
             <h2 className="admin-section-title">Gerenciar Vendedores</h2>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* Bulk import — root_admin only */}
-              {isRootAdmin(seller) && (
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => {
-                    if (!window.confirm(
-                      'Isso vai criar os vendedores Portal Lead que ainda não existem no sistema.\n\nContinuar?'
-                    )) return;
-                    const result = bulkCreatePortalLeadVendors();
-                    loadAll();
-                    showBanner(
-                      `Vendedores importados! ✅ Criados: ${result.created}. Já existentes: ${result.skipped}.`
-                    );
-                  }}
-                  style={{ whiteSpace: 'nowrap', borderColor: '#6366f1', color: '#4f46e5' }}
-                  title="Disponível apenas para Root Admin"
-                >
-                  <Users size={16} />
-                  Recriar vendedores Portal Lead
-                </button>
-              )}
+
               <button 
                 type="button" 
                 className="btn btn-primary btn-sm" 
@@ -1107,7 +1067,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
           </div>
 
           <div className="table-container">
-            <table className="admin-table">
+            <table className="admin-table users-table">
+              <colgroup>
+                <col className="col-name" style={{ width: '15%' }} />
+                <col className="col-username" style={{ width: '11%' }} />
+                <col className="col-email" style={{ width: '20%' }} />
+                <col className="col-phone" style={{ width: '14%' }} />
+                <col className="col-company" style={{ width: '17%' }} />
+                <col className="col-role" style={{ width: '10%' }} />
+                <col className="col-status" style={{ width: '7%' }} />
+                <col className="col-actions" style={{ width: '6%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Nome</th>
@@ -1132,71 +1102,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                     const isRoot = isRootAdmin(sel);
                     return (
                       <tr key={sel.id} style={isRoot ? { background: 'linear-gradient(90deg, #f0f4ff 0%, #fff 100%)' } : undefined}>
-                        <td style={{ fontWeight: 600 }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span>{sel.name}</span>
+                        <td className="name-cell truncate-cell" title={isRoot ? 'Administrador Principal' : sel.name}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                            <span className="truncate-cell" style={{ fontWeight: 600 }}>{isRoot ? 'Administrador Principal' : sel.name}</span>
                             {isRoot && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 700,
-                                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                                  color: '#fff',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  letterSpacing: '0.05em',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px'
-                                }}>
-                                  <Shield size={8} /> ROOT ADMIN
-                                </span>
-                                <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Usuário protegido</span>
-                              </div>
+                              <span className="nowrap" style={{ fontSize: '0.7rem', color: '#6b7280' }}>Usuário protegido</span>
                             )}
                           </div>
                         </td>
-                        <td>{sel.username}</td>
-                        <td>{sel.email || '-'}</td>
-                        <td>{sel.phone}</td>
-                        <td>{sel.companyName || 'Sem Empresa'}</td>
-                        <td>
+                        <td className="truncate-cell" title={sel.username}>{sel.username}</td>
+                        <td className="email-cell truncate-cell" title={sel.email || '-'}>{sel.email || '-'}</td>
+                        <td className="phone-cell nowrap">{formatBrazilianPhone(sel.phone)}</td>
+                        <td className="company-cell truncate-cell" title={sel.companyName || 'Sem Empresa'}>
+                          {formatCompanyShortName(sel.companyName || '')}
+                        </td>
+                        <td className="nowrap">
                           {isRoot ? (
-                            <span style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
+                            <span className="role-badge" title="Administrador Principal" style={{
                               background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                              color: '#fff',
-                              padding: '2px 8px',
-                              borderRadius: '99px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
+                              color: '#fff'
                             }}>
-                              <Shield size={10} /> Root Admin
+                              ROOT
                             </span>
                           ) : (
-                            <span className={`admin-badge ${
+                            <span className={`admin-badge role-badge ${
                               sel.role === 'root_admin' || sel.role === 'Admin' ? 'admin-badge-info' : 
                               sel.role === 'company_admin' ? 'admin-badge-info' : 'admin-badge-warning'
-                            }`}>
-                              {sel.role === 'vendor' || sel.role === 'Vendedor' ? 'Vendedor' :
-                               sel.role === 'company_admin' ? 'Admin Empresa' : sel.role}
+                            }`} title={
+                              sel.role === 'company_admin' ? 'Admin de Empresa' :
+                              sel.role === 'vendor' || sel.role === 'Vendedor' ? 'Vendedor' : sel.role
+                            }>
+                              {sel.role === 'company_admin' ? 'ADM EMPRESA' :
+                               sel.role === 'vendor' || sel.role === 'Vendedor' ? 'VENDEDOR' : 
+                               sel.role === 'root_admin' || sel.role === 'Admin' ? 'ROOT' : sel.role}
                             </span>
                           )}
                         </td>
-                        <td>
-                          <span className={`admin-badge ${sel.status === 'Ativo' || sel.status === 'active' ? 'admin-badge-success' : 'admin-badge-danger'}`}>
-                            {sel.status === 'active' ? 'Ativo' : sel.status}
+                        <td className="nowrap">
+                          <span className={`admin-badge status-badge ${sel.status === 'Ativo' || sel.status === 'active' ? 'admin-badge-success' : 'admin-badge-danger'}`} title={sel.status}>
+                            {sel.status === 'active' || sel.status === 'Ativo' ? 'ATIVO' : 'INATIVO'}
                           </span>
                         </td>
-                        <td>
-                          <div className="action-buttons-group">
+                        <td className="actions-cell">
+                          <div className="actions-cell-inner">
                             <button 
                               type="button" 
-                              className="btn btn-outline btn-sm" 
+                              className="btn btn-outline btn-sm action-button" 
                               onClick={() => handleOpenEditSeller(sel)}
-                              style={{ width: 'auto' }}
                               title={isRoot ? 'Editar apenas senha' : 'Editar usuário'}
                             >
                               <Edit2 size={14} />
@@ -1205,9 +1157,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                             {!isRoot && (
                               <button 
                                 type="button" 
-                                className="btn btn-danger-light btn-sm" 
+                                className="btn btn-danger-light btn-sm action-button" 
                                 onClick={() => handleDeleteSeller(sel.id)}
-                                style={{ width: 'auto' }}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -1229,7 +1180,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
          ========================================== */}
       {currentTab === 'products' && (() => {
         const allLines = Array.from(new Set(products.map(p => (p as any).line).filter(Boolean))).sort() as string[];
-        const allCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort() as string[];
+        const allCategories = PRODUCT_CATEGORIES;
         const allBrands = Array.from(new Set(products.map(p => p.brand).filter(Boolean))).sort() as string[];
 
         const filtered = products.filter(p => {
@@ -1254,57 +1205,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
             <div className="admin-section-header">
               <h2 className="admin-section-title">Gerenciar Produtos</h2>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                {isRootAdmin(seller) && (
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch('/importedProducts.json');
-                        if (!res.ok) throw new Error('Arquivo não encontrado. Execute: npm run import:products');
-                        const imported: any[] = await res.json();
-                        const norm = (s: string) =>
-                          s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
-                        const existing = leadCollectorStorage.getProducts();
-                        let created = 0; let updated = 0;
-                        for (const imp of imported) {
-                          const normName = norm(imp.name);
-                          const matchedExisting = existing.find(p => norm(p.name) === normName);
-                          if (matchedExisting) {
-                            if (
-                              matchedExisting.brand !== imp.brand ||
-                              matchedExisting.category !== imp.category ||
-                              (matchedExisting as any).line !== imp.line ||
-                              matchedExisting.companyName !== imp.companyName
-                            ) {
-                              leadCollectorStorage.updateProduct(matchedExisting.id, {
-                                brand: imp.brand || matchedExisting.brand || '',
-                                category: imp.category || matchedExisting.category || '',
-                                line: imp.line || (matchedExisting as any).line || '',
-                                companyName: imp.companyName || matchedExisting.companyName || 'Comercial Scardua',
-                              });
-                              updated++;
-                            }
-                            continue;
-                          }
-                          leadCollectorStorage.addProduct({
-                            name: imp.name, brand: imp.brand || '', category: imp.category || '',
-                            line: imp.line || '', companyId: imp.companyId || null,
-                            companyName: imp.companyName || 'Comercial Scardua', status: 'Ativo',
-                          } as any);
-                          created++;
-                        }
-                        loadAll();
-                        showBanner(`Produtos importados! ✅ Criados: ${created}. Atualizados/Corrigidos: ${updated}.`);
-                      } catch (err: any) { alert('Erro ao importar: ' + err.message); }
-                    }}
-                    style={{ whiteSpace: 'nowrap', borderColor: '#0891b2', color: '#0e7490' }}
-                    title="Importa produtos do JSON gerado por npm run import:products"
-                  >
-                    <Database size={16} />
-                    Importar produtos das pastas
-                  </button>
-                )}
+
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
@@ -1355,7 +1256,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
 
             {/* Table */}
             <div className="table-container">
-              <table className="admin-table">
+              <table className="admin-table products-table">
+                <colgroup>
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '5%' }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Produto</th>
@@ -1377,22 +1287,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                   ) : (
                     filtered.map((pr) => (
                       <tr key={pr.id}>
-                        <td style={{ fontWeight: 600 }}>{pr.name}</td>
-                        <td><span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{(pr as any).line || '—'}</span></td>
-                        <td>{pr.category || '—'}</td>
-                        <td>{pr.brand || '—'}</td>
-                        <td>{pr.companyName || 'Sem Empresa'}</td>
-                        <td>
-                          <span className={`admin-badge ${pr.status === 'Ativo' ? 'admin-badge-success' : 'admin-badge-danger'}`}>
-                            {pr.status}
+                        <td className="name-cell truncate-cell" title={pr.name} style={{ fontWeight: 600 }}>{pr.name}</td>
+                        <td className="truncate-cell" title={(pr as any).line || '—'}><span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>{(pr as any).line || '—'}</span></td>
+                        <td className="truncate-cell" title={pr.category || '—'}>{pr.category || '—'}</td>
+                        <td className="truncate-cell" title={pr.brand || '—'}>{pr.brand || '—'}</td>
+                        <td className="company-cell truncate-cell" title={pr.companyName || 'Sem Empresa'}>
+                          {formatCompanyShortName(pr.companyName || '')}
+                        </td>
+                        <td className="nowrap">
+                          <span className={`admin-badge status-badge ${pr.status === 'Ativo' ? 'admin-badge-success' : 'admin-badge-danger'}`} title={pr.status}>
+                            {pr.status === 'Ativo' ? 'ATIVO' : 'INATIVO'}
                           </span>
                         </td>
-                        <td>
-                          <div className="action-buttons-group">
-                            <button type="button" className="btn btn-outline btn-sm" onClick={() => handleOpenEditProduct(pr)} style={{ width: 'auto' }}>
+                        <td className="actions-cell">
+                          <div className="actions-cell-inner">
+                            <button type="button" className="btn btn-outline btn-sm action-button" onClick={() => handleOpenEditProduct(pr)}>
                               <Edit2 size={14} />
                             </button>
-                            <button type="button" className="btn btn-danger-light btn-sm" onClick={() => handleDeleteProduct(pr.id)} style={{ width: 'auto' }}>
+                            <button type="button" className="btn btn-danger-light btn-sm action-button" onClick={() => handleDeleteProduct(pr.id)}>
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -1429,7 +1341,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
           </div>
 
           <div className="table-container">
-            <table className="admin-table">
+            <table className="admin-table leads-table">
+              <colgroup>
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '3%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Nome</th>
@@ -1456,30 +1380,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                     const dateStr = new Date(l.createdAt).toLocaleDateString('pt-BR') + ' ' + new Date(l.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
                     return (
                       <tr key={l.id}>
-                        <td style={{ fontWeight: 600 }}>{l.fullName}</td>
-                        <td>{l.phone}</td>
-                        <td>{l.city} - {l.state}</td>
-                        <td>{l.eventName}</td>
-                        <td>{l.sellerName}</td>
-                        <td>{l.companyName || 'Sem Empresa'}</td>
-                        <td style={{ fontSize: '0.85rem' }}>
-                          {l.products.join(', ')}
+                        <td className="name-cell truncate-cell" title={l.fullName} style={{ fontWeight: 600 }}>{l.fullName}</td>
+                        <td className="phone-cell nowrap">{formatBrazilianPhone(l.phone)}</td>
+                        <td className="truncate-cell" title={`${l.city} - ${l.state}`}>{l.city} - {l.state}</td>
+                        <td className="truncate-cell" title={l.eventName}>{l.eventName}</td>
+                        <td className="truncate-cell" title={l.sellerName}>{l.sellerName}</td>
+                        <td className="company-cell truncate-cell" title={l.companyName || 'Sem Empresa'}>
+                          {formatCompanyShortName(l.companyName || '')}
                         </td>
-                        <td style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>{dateStr}</td>
-                        <td>
-                          <span className="admin-badge admin-badge-success">
-                            {l.status}
+                        <td className="truncate-cell" style={{ fontSize: '0.85rem' }} title={l.products.join(', ')}>{l.products.join(', ')}</td>
+                        <td className="nowrap" style={{ fontSize: '0.85rem', color: 'var(--muted)' }} title={dateStr}>{dateStr}</td>
+                        <td className="nowrap">
+                          <span className="admin-badge status-badge admin-badge-success" title={l.status}>
+                            {String(l.status || '').toUpperCase()}
                           </span>
                         </td>
-                        <td>
-                          <button 
-                            type="button" 
-                            className="btn btn-danger-light btn-sm" 
-                            onClick={() => handleDeleteLead(l.id)}
-                            style={{ width: 'auto' }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                        <td className="actions-cell">
+                          <div className="actions-cell-inner">
+                            <button 
+                              type="button" 
+                              className="btn btn-danger-light btn-sm action-button" 
+                              onClick={() => handleDeleteLead(l.id)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1768,7 +1693,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                       style={{ paddingLeft: '1rem', height: '46px' }}
                       placeholder="Ex: (27) 3333-4444" 
                       value={coPhone} 
-                      onChange={e => setCoPhone(e.target.value)} 
+                      onChange={e => setCoPhone(maskPhone(e.target.value))} 
                     />
                   </div>
 
@@ -1887,10 +1812,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                         <input 
                           type="text" 
                           className="form-input" 
-                          style={{ paddingLeft: '1rem', height: '46px', opacity: editingRootAdmin ? 0.5 : 1 }}
+                          style={{ paddingLeft: '1rem', height: '46px', opacity: editingRootAdmin ? 0.5 : 1, whiteSpace: 'nowrap' }}
                           placeholder="Ex: 27999998888" 
                           value={sePhone} 
-                          onChange={e => setSePhone(e.target.value)}
+                          onChange={e => setSePhone(maskPhone(e.target.value))}
                           disabled={editingRootAdmin}
                         />
                       </div>
@@ -2021,6 +1946,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                         <option value="">Selecione a marca</option>
                         <option value="Agritech">Agritech</option>
                         <option value="Sunward">Sunward</option>
+                        <option value="Lovol">Lovol</option>
+                        <option value="EP Equipment">EP Equipment</option>
                         <option value="Moldemaq">Moldemaq</option>
                         <option value="YTO">YTO</option>
                         <option value="Barbieri">Barbieri</option>
@@ -2041,21 +1968,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentTab, seller }) =>
                         onChange={e => setPrCategory(e.target.value)}
                       >
                         <option value="">Selecione a categoria</option>
-                        <option value="Trator">Trator</option>
-                        <option value="Microtrator">Microtrator</option>
-                        <option value="Transportador Agrícola">Transportador Agrícola</option>
-                        <option value="Escavadeira">Escavadeira</option>
-                        <option value="Mini Escavadeira">Mini Escavadeira</option>
-                        <option value="Pá Carregadeira">Pá Carregadeira</option>
-                        <option value="Rolo Compactador">Rolo Compactador</option>
-                        <option value="Retroescavadeira">Retroescavadeira</option>
-                        <option value="Barco">Barco</option>
-                        <option value="Motor">Motor</option>
-                        <option value="Jet Ski">Jet Ski</option>
-                        <option value="Quadriciclo">Quadriciclo</option>
-                        <option value="Peças">Peças</option>
-                        <option value="Serviço">Serviço</option>
-                        <option value="Outros">Outros</option>
+                        {PRODUCT_CATEGORIES.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

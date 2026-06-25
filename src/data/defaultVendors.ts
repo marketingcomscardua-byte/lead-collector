@@ -1,0 +1,30 @@
+import { Seller } from '../types/seller';
+
+export const DEFAULT_VENDORS: Omit<Seller, 'id'>[] = [
+  { name: 'Yuri', username: 'yuri', email: 'yuri@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Weverson', username: 'weverson', email: 'weverson@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Solimar', username: 'solimar', email: 'solimar@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Sandro', username: 'sandro', email: 'sandro@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Renato', username: 'renato', email: 'renato@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Rogério', username: 'rogerio', email: 'rogerio@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Pedro', username: 'pedro', email: 'pedro@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Patrick', username: 'patrick', email: 'patrick@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Maicon M.', username: 'maicon.m', email: 'maicon.m@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Maicon G.', username: 'maicon.g', email: 'maicon.g@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Leonardo', username: 'leonardo', email: 'leonardo@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Leon', username: 'leon', email: 'leon@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Juliano', username: 'juliano', email: 'juliano@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Junio Gonçalves', username: 'junio.goncalves', email: 'junio.goncalves@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Junior Vivas', username: 'junior.vivas', email: 'junior.vivas@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Jeferson', username: 'jeferson', email: 'jeferson@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Grimaldo', username: 'grimaldo', email: 'grimaldo@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Felipe', username: 'felipe', email: 'felipe@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Flavio', username: 'flavio', email: 'flavio@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Fernando Delai', username: 'fernando.delai', email: 'fernando.delai@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Ernandes', username: 'ernandes', email: 'ernandes@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Emilio', username: 'emilio', email: 'emilio@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Derick', username: 'derick', email: 'derick@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Bruno', username: 'bruno', email: 'bruno@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Arthur', username: 'arthur', email: 'arthur@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' },
+  { name: 'Andre', username: 'andre', email: 'andre@portallead.com.br', phone: '27999999999', password: '123456', role: 'vendor', companyId: null, companyName: 'Sem Empresa', status: 'Ativo' }
+];

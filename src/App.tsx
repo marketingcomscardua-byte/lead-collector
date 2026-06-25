@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { leadCollectorStorage } from './storage/leadCollectorStorage';
+import { initializeAppData } from './storage/initializeAppData';
 import { Seller } from './types/seller';
 import { isAdminRole } from './utils/accessControl';
 import { LoginPage } from './pages/LoginPage';
@@ -18,6 +19,9 @@ function App() {
   useEffect(() => {
     // Initialize storage seed data if needed
     leadCollectorStorage.init();
+
+    // Run central automated initialization & migration
+    initializeAppData();
 
     // Check if seller session exists
     const sessionSeller = leadCollectorStorage.getCurrentSeller();

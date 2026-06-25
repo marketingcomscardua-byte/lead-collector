@@ -1254,26 +1254,42 @@ body:has(.admin-layout) {
   border-collapse: collapse;
   text-align: left;
   font-size: 0.82rem;
-  min-width: 560px; /* Enables clean horizontal scroll on mobile */
+}
+
+@media (max-width: 899px) {
+  .admin-table {
+    min-width: 920px;
+    table-layout: auto;
+  }
+}
+
+@media (min-width: 900px) {
+  .admin-table {
+    min-width: 0;
+    table-layout: fixed;
+  }
 }
 
 @media (min-width: 768px) {
   .admin-table {
     font-size: 0.85rem;
-    min-width: 640px;
   }
 }
 
 @media (min-width: 1024px) {
   .admin-table {
     font-size: 0.9rem;
-    min-width: unset;
   }
+}
+
+.admin-table th,
+.admin-table td {
+  vertical-align: middle;
+  padding: 18px 20px !important;
 }
 
 .admin-table th {
   background-color: #F8FCFE;
-  padding: 0.75rem 0.875rem;
   font-weight: 700;
   color: var(--primary);
   border-bottom: 1.5px solid var(--border);
@@ -1285,37 +1301,19 @@ body:has(.admin-layout) {
 
 @media (min-width: 640px) {
   .admin-table th {
-    padding: 0.875rem 1rem;
     font-size: 0.7rem;
   }
 }
 
 @media (min-width: 1024px) {
   .admin-table th {
-    padding: 1rem 1.25rem;
     font-size: 0.75rem;
   }
 }
 
 .admin-table td {
-  padding: 0.75rem 0.875rem;
   border-bottom: 1px solid var(--border);
   color: var(--primary-dark);
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  vertical-align: middle;
-}
-
-@media (min-width: 640px) {
-  .admin-table td {
-    padding: 0.875rem 1rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .admin-table td {
-    padding: 1rem 1.25rem;
-  }
 }
 
 .admin-table tbody tr:hover {
@@ -1324,6 +1322,100 @@ body:has(.admin-layout) {
 
 .admin-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Custom Table Helpers to Prevent Wrapping */
+.nowrap {
+  white-space: nowrap !important;
+}
+
+.email-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.phone-cell {
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.badge,
+.role-badge,
+.status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  width: fit-content !important;
+  max-width: none !important;
+  line-height: 1 !important;
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.actions-cell {
+  white-space: nowrap !important;
+}
+
+.actions-cell .actions {
+  display: inline-flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.truncate-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.action-button {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.actions-cell-inner {
+  display: inline-flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 899px) {
+  .name-cell {
+    min-width: 150px !important;
+  }
+  .company-cell {
+    min-width: 180px !important;
+  }
+  .phone-cell {
+    min-width: 150px !important;
+  }
+  .actions-cell {
+    min-width: 110px !important;
+  }
+  .email-cell {
+    max-width: 240px !important;
+  }
+}
+
+@media (min-width: 900px) {
+  .company-cell {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .admin-table td {
+    font-size: 14px;
+  }
 }
 
 /* ==========================================

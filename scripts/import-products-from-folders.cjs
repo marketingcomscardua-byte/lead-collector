@@ -127,71 +127,149 @@ function detectLineFromPath(pathStr, explicitLine) {
   return 'Porto Livre';
 }
 
-// ---- Detecção de Categoria ----
-function detectCategory(name, line) {
-  const n = normalizeKey(name);
+// ---- Classificação do Produto (Regras Oficiais) ----
+function classifyProduct(name, company, sourcePath) {
+  const pathStr = String(sourcePath || "");
+  const companyStr = String(company || "");
+  
+  const normalized = normalizeKey(name + " " + pathStr + " " + companyStr);
+  const normalizedName = normalizeKey(name);
 
-  // Linha Agrícola
-  if (line === 'Linha Agrícola') {
-    if (/micro.?trator|microtrator|barbieri/.test(n)) return 'Microtrator';
-    if (/transportador/.test(n)) return 'Transportador Agrícola';
-    if (/colhedora/.test(n))     return 'Colhedora';
-    if (/trator/.test(n))        return 'Trator';
-    return 'Outros';
+  // 1. Determine Brand & Company
+  let brand = "Outras";
+  let companyName = "Sem Empresa";
+
+  // Check Lovol
+  if (normalized.includes("lovol") || /^fr/i.test(name.trim()) || /^fl/i.test(name.trim())) {
+    brand = "Lovol";
+    companyName = "PORTO LIVRE";
+  }
+  // Check Sunward
+  else if (normalized.includes("sunward") || /^sw[a-z0-9-]*/i.test(name.trim())) {
+    brand = "Sunward";
+    companyName = "Comercial Scardua";
+  }
+  // Check EP Equipment
+  else if (
+    normalized.includes("ep equipment") ||
+    normalized.includes("ep equip") ||
+    normalized.includes("empilhadeira") ||
+    normalized.includes("empilhadeiras") ||
+    normalized.includes("transpaleteira") ||
+    normalized.includes("transpaleteiras") ||
+    normalized.includes("paleteira") ||
+    normalized.includes("paleteiras")
+  ) {
+    brand = "EP Equipment";
+    companyName = "PORTO LIVRE";
+  }
+  // Check Agritech
+  else if (normalized.includes("agritech")) {
+    brand = "Agritech";
+    companyName = "Comercial Scardua";
+  }
+  // Other known brands
+  else if (normalized.includes("moldemaq")) {
+    brand = "Moldemaq";
+    companyName = company || "Comercial Scardua";
+  } else if (normalized.includes("yto")) {
+    brand = "YTO";
+    companyName = company || "PORTO LIVRE";
+  } else if (normalized.includes("barbieri")) {
+    brand = "Barbieri";
+    companyName = company || "Comercial Scardua";
+  } else if (normalized.includes("mercury")) {
+    brand = "Mercury";
+    companyName = company || "PORTO LIVRE";
+  } else if (normalized.includes("fibrafort")) {
+    brand = "Fibrafort";
+    companyName = company || "PORTO LIVRE";
+  } else if (normalized.includes("ventura")) {
+    brand = "Ventura";
+    companyName = company || "PORTO LIVRE";
+  } else if (normalized.includes("comercial scardua")) {
+    brand = "Comercial Scardua";
+    companyName = "Comercial Scardua";
+  } else if (normalized.includes("porto livre")) {
+    brand = "Porto Livre";
+    companyName = "PORTO LIVRE";
+  } else {
+    // Fallback companyName based on path
+    const pathNorm = normalizeKey(pathStr);
+    const companyNorm = normalizeKey(companyStr);
+
+    if (pathNorm.includes("comercial scardua") || companyNorm.includes("comercial scardua")) {
+      companyName = "Comercial Scardua";
+    } else if (pathNorm.includes("porto livre") || companyNorm.includes("porto livre")) {
+      companyName = "PORTO LIVRE";
+    } else if (company) {
+      companyName = company;
+    }
   }
 
-  // Linha Amarela
-  if (line === 'Linha Amarela') {
-    if (/mini.?escavadeira|miniescavadeira/.test(n)) return 'Mini Escavadeira';
-    if (/escavadeira/.test(n))          return 'Escavadeira';
-    if (/p[aá].?carregadeira/.test(n))  return 'Pá Carregadeira';
-    if (/rolo/.test(n))                 return 'Rolo Compactador';
-    if (/retro/.test(n))                return 'Retroescavadeira';
-    return 'Outros';
+  // 2. Determine Category (Strict list)
+  let category = "Outros";
+
+  // Check Agritech
+  if (normalizedName.includes("microtrator") || normalizedName.includes("micro trator")) {
+    category = "Microtrator";
+  } else if (normalizedName.includes("trator")) {
+    category = "Trator";
+  }
+  // Check Transportador agrícola
+  else if (
+    normalizedName.includes("transportador agricola") ||
+    normalizedName.includes("transportador")
+  ) {
+    category = "Transportador Agrícola";
+  }
+  // Check Sunward / Lovol / Linha Amarela
+  else if (normalizedName.includes("mini escavadeira") || normalizedName.includes("miniescavadeira")) {
+    category = "Mini Escavadeira";
+  } else if (normalizedName.includes("escavadeira")) {
+    category = "Escavadeira";
+  } else if (
+    normalizedName.includes("pa carregadeira") ||
+    normalizedName.includes("carregadeira")
+  ) {
+    category = "Pá Carregadeira";
+  }
+  // Check Lovol por prefixo
+  else if (/^fr/i.test(name.trim())) {
+    category = "Escavadeira";
+  } else if (/^fl/i.test(name.trim())) {
+    category = "Pá Carregadeira";
+  }
+  // Check EP Equipment
+  else if (normalizedName.includes("empilhadeira") || normalizedName.includes("empilhadeiras")) {
+    category = "Empilhadeira";
+  } else if (
+    normalizedName.includes("transpaleteira") ||
+    normalizedName.includes("transpaleteiras") ||
+    normalizedName.includes("paleteira") ||
+    normalizedName.includes("paleteiras")
+  ) {
+    category = "Transpaleteira";
+  }
+  // Check Peças e Serviço
+  else if (
+    normalizedName.includes("peca") ||
+    normalizedName.includes("pecas")
+  ) {
+    category = "Peças";
+  } else if (
+    normalizedName.includes("servico") ||
+    normalizedName.includes("servicos") ||
+    normalizedName.includes("manutencao")
+  ) {
+    category = "Serviço";
   }
 
-  // Linha EP
-  if (line === 'Linha EP') {
-    if (/empilhadeira/.test(n)) return 'Empilhadeira';
-    if (/transpaleteira/.test(n)) return 'Transpaleteira';
-    return 'Empilhadeira';
-  }
-
-  // Genérico / Porto Livre
-  if (/empilhadeira/.test(n))               return 'Empilhadeira';
-  if (/transpaleteira/.test(n))             return 'Transpaleteira';
-  if (/barco/.test(n))                      return 'Barco';
-  if (/jet.?ski|jetski/.test(n))            return 'Jet Ski';
-  if (/quadriciclo/.test(n))               return 'Quadriciclo';
-  if (/motor/.test(n))                      return 'Motor';
-  if (/mini.?escavadeira|miniescavadeira/.test(n)) return 'Mini Escavadeira';
-  if (/escavadeira/.test(n))               return 'Escavadeira';
-  if (/p[aá].?carregadeira/.test(n))       return 'Pá Carregadeira';
-  if (/trator/.test(n))                    return 'Trator';
-  return 'Outros';
-}
-
-// ---- Detecção de Marca ----
-function detectBrand(name, company, line) {
-  const n = name.toLowerCase();
-  if (n.includes('agritech'))   return 'Agritech';
-  if (n.includes('sunward') || /^sw/i.test(n)) return 'Sunward';
-  if (n.includes('moldemaq'))   return 'Moldemaq';
-  if (n.includes('yto'))        return 'YTO';
-  if (n.includes('barbieri'))   return 'Barbieri';
-  if (n.includes('mercury'))    return 'Mercury';
-  if (n.includes('fibrafort'))  return 'Fibrafort';
-  if (n.includes('ventura'))    return 'Ventura';
-
-  const cNorm = (company || '').toLowerCase();
-  if (cNorm === 'comercial scardua' || cNorm === 'c. scardua') {
-    return 'Comercial Scardua';
-  }
-  if (cNorm === 'porto livre') {
-    return 'Porto Livre';
-  }
-
-  return 'Outras';
+  return {
+    brand,
+    companyName,
+    category
+  };
 }
 
 // ============================================================
@@ -231,13 +309,14 @@ function scanScardua(folderPath, line, company, sourceRoot, depth, products, see
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);
 
+      const classification = classifyProduct(stripped, company, fullPath);
       products.push({
         name: stripped,
         line: detectedLine,
-        category: detectCategory(stripped, detectedLine),
-        brand: detectBrand(stripped, company, detectedLine),
+        category: classification.category,
+        brand: classification.brand,
         companyId: null,
-        companyName: company,
+        companyName: classification.companyName,
         status: 'Ativo',
         sourceRoot,
         sourcePath: fullPath,
@@ -273,13 +352,14 @@ function scanFlat(folderPath, line, company, sourceRoot, products, seenKeys) {
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
 
+    const classification = classifyProduct(stripped, company, fullPath);
     products.push({
       name: stripped,
       line,
-      category: detectCategory(stripped, line),
-      brand: detectBrand(stripped, company, line),
+      category: classification.category,
+      brand: classification.brand,
       companyId: null,
-      companyName: company,
+      companyName: classification.companyName,
       status: 'Ativo',
       sourceRoot,
       sourcePath: fullPath,
@@ -341,13 +421,14 @@ function scanPorto(folderPath, company, sourceRoot, products, seenKeys) {
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);
 
+      const classification = classifyProduct(stripped, company, subPath);
       products.push({
         name: stripped,
         line: groupLine,
-        category: detectCategory(stripped, groupLine),
-        brand: detectBrand(stripped, company, groupLine),
+        category: classification.category,
+        brand: classification.brand,
         companyId: null,
-        companyName: company,
+        companyName: classification.companyName,
         status: 'Ativo',
         sourceRoot,
         sourcePath: subPath,

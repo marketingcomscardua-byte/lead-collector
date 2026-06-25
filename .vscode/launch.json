@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome (Vite Dev Server)",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/src",
+      "preLaunchTask": "npm: dev",
+      "sourceMaps": true
+    },
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "Launch Edge (Vite Dev Server)",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/src",
+      "preLaunchTask": "npm: dev",
+      "sourceMaps": true
+    }
+  ]
+}

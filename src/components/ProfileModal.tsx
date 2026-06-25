@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { X, User, Mail, Phone, Lock, LogOut, Check, Camera } from 'lucide-react';
 import { Seller } from '../types/seller';
+import { maskPhone } from '../utils/phoneMask';
 import { FormInput } from './FormInput';
 import { AvatarPhotoModal } from './AvatarPhotoModal';
 
@@ -22,7 +23,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   // Profile fields state
   const [name, setName] = useState(seller.name);
   const [email, setEmail] = useState(seller.email || '');
-  const [phone, setPhone] = useState(seller.phone);
+  const [phone, setPhone] = useState(maskPhone(seller.phone));
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileError, setProfileError] = useState('');
 
@@ -186,7 +187,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 type="text"
                 icon={Phone}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(maskPhone(e.target.value))}
                 placeholder="Ex: (27) 99999-9999"
               />
 
