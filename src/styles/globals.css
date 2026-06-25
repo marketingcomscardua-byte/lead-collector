@@ -1786,6 +1786,14 @@ body:has(.admin-layout) {
   width: 100%;
 }
 
+.login-shell {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .login-card {
   width: 100%;
   max-width: 420px;
@@ -1953,4 +1961,90 @@ body:has(.admin-layout) {
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.login-credit {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(17, 17, 45, 0.55);
+  font-weight: 500;
+}
+
+/* ==========================================
+   ADMIN PWA INSTALL & HEADER ACTIONS
+   ========================================== */
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.install-app-button,
+.admin-install-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid #d2e4ef;
+  background: #ffffff;
+  color: #083b8a;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 1;
+  visibility: visible;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.install-app-button:hover,
+.admin-install-button:hover {
+  background: #eaf6fd;
+  color: #083b8a;
+  border-color: #9fc7df;
+}
+
+.install-app-button:focus-visible,
+.admin-install-button:focus-visible {
+  outline: 3px solid rgba(8, 59, 138, 0.25);
+  outline-offset: 2px;
+}
+
+.install-app-button svg,
+.admin-install-button svg {
+  color: currentColor;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+/* Align logout-button size with admin-install-button */
+.logout-button {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+@media (max-width: 640px) {
+  .admin-header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .admin-header-actions .install-app-button,
+  .admin-header-actions .admin-install-button,
+  .admin-header-actions .logout-button {
+    flex: 1 1 auto;
+    min-width: 130px;
+  }
 }

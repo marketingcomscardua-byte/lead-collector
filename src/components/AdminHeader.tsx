@@ -1,5 +1,6 @@
 import React from 'react';
 import { LogOut, BarChart3, Calendar, Building2, Users, ShoppingBag, Database } from 'lucide-react';
+import { InstallPwaButton } from './common/InstallPwaButton';
 
 interface AdminHeaderProps {
   currentTab: string;
@@ -34,15 +35,18 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             <p>Gerencie eventos, empresas, vendedores e leads | Grupo Scardua</p>
           </div>
         </div>
-        <button
-          type="button"
-          className="btn btn-danger-light btn-sm"
-          onClick={onLogout}
-          style={{ width: 'auto' }}
-        >
-          <LogOut size={16} />
-          Sair
-        </button>
+        <div className="admin-header-actions">
+          <InstallPwaButton variant="admin" />
+          <button
+            type="button"
+            className="btn btn-danger-light btn-sm logout-button"
+            onClick={onLogout}
+            style={{ width: 'auto' }}
+          >
+            <LogOut size={16} />
+            Sair
+          </button>
+        </div>
       </header>
 
       {/* Navigation tabs */}

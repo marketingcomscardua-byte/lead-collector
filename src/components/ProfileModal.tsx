@@ -4,6 +4,7 @@ import { Seller } from '../types/seller';
 import { maskPhone } from '../utils/phoneMask';
 import { FormInput } from './FormInput';
 import { AvatarPhotoModal } from './AvatarPhotoModal';
+import { InstallPwaButton } from './common/InstallPwaButton';
 
 interface ProfileModalProps {
   seller: Seller;
@@ -240,6 +241,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 Alterar Senha
               </button>
             </form>
+
+            {/* PWA Install options */}
+            <InstallPwaButton variant="profile" />
 
             {/* Logout button */}
             <button
